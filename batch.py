@@ -11,6 +11,7 @@ from utils import *
 # Setup logger at the top of the file
 logger = setup_logger("batch", 'grid_search.log')
 
+# Running experiments 101-150 (50 total)
 start_comb_idx = 100
 exp_num = 50
 
