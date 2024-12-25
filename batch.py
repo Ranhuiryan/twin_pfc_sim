@@ -27,13 +27,13 @@ exp_num: Number of experiments to run
    - exp_num = (original_end_number - start_comb_idx + 1)
 
 Example scenarios:
-a) Running experiments 100-149 (50 total):
+a) Running experiments 101-150 (50 total):
    start_comb_idx = 100
    exp_num = 50
 
 b) If experiment 142 fails and you want to resume from there:
    start_comb_idx = 141  # (142 - 1)
-   exp_num = 9         # (149 - 141 + 1)
+   exp_num = 9           # (150 - 141)
 """
 
 deterministic_mode = False
