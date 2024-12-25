@@ -246,8 +246,8 @@ def main(start_comb_idx, exp_num):
         logger.info(f"Running combination {i + start_comb_idx}/{total_combinations}")
         logger.info(f"Parameters: fric={params[0]}, rfric={params[1]}, dpnr={params[2]}, dpsr={params[3]}, F0={params[4]}, D0={params[5]}")
         
-        # success, msg = run_simulation(params)
-        success, msg = True, "Test"
+        success, msg = run_simulation(params)
+        # success, msg = True, "Test"
 
         # Log progress (now handled by logger)
         logger.info(f"Status: {'Success' if success else 'Failed'}")
