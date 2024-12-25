@@ -6,14 +6,38 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import datetime
 from utils import *
 
-start_comb_idx = 0
-exp_num = 100
+# Setup logger at the top of the file
+logger = setup_logger("batch", 'grid_search.log')
+
+start_comb_idx = 100
+exp_num = 50
+
+"""
+start_comb_idx: Starting index for the grid search combinations (0-based)
+exp_num: Number of experiments to run
+
+1. For a fresh start:
+   - start_comb_idx = 0
+   - exp_num = total number of desired experiments
+
+2. To resume from a failed experiment:
+   - start_comb_idx = failed_experiment_number - 1
+   - exp_num = (original_end_number - start_comb_idx + 1)
+
+Example scenarios:
+a) Running experiments 100-149 (50 total):
+   start_comb_idx = 100
+   exp_num = 50
+
+b) If experiment 142 fails and you want to resume from there:
+   start_comb_idx = 141  # (142 - 1)
+   exp_num = 9         # (149 - 141 + 1)
+"""
 
 deterministic_mode = False
-checkpoint = True
+checkpoint = False
 
 # layer_array = [
 #     5,  # coal layer height
@@ -37,7 +61,7 @@ def run_simulation(params):
         resu_path = f'experiments/running_{fric}_{rfric}_{dpnr}_{dpsr}_{F0}_{D0}'
 
         if os.path.exists(f'experiments/exp_{fric}_{rfric}_{dpnr}_{dpsr}_{F0}_{D0}'):
-            print(f"Warning: The simulation in {resu_path} already exists, ending simulation.")
+            logger.warning(f"The simulation in {resu_path} already exists, ending simulation.")
             return False, f"The simulation in {resu_path} already exists, ending simulation."
         
         # Create main result directory and subdirectories
@@ -85,9 +109,9 @@ def run_simulation(params):
 
         # Print warning if top_ball_pos is larger than wall_up_pos_y
         if top_ball_pos > wall_up_pos_y * 1.1:
-            print(f"Warning: the model is expanding, please check the model. Current top_ball_pos: {top_ball_pos}, model height: {wall_up_pos_y}")
+            logger.warning(f"The model is expanding, please check the model. Current top_ball_pos: {top_ball_pos}, model height: {wall_up_pos_y}")
         if top_ball_pos < wall_up_pos_y * 0.8:
-            print(f"Warning: the model is shrinking, please check the model. Current top_ball_pos: {top_ball_pos}, model height: {wall_up_pos_y}")
+            logger.warning(f"The model is shrinking, please check the model. Current top_ball_pos: {top_ball_pos}, model height: {wall_up_pos_y}")
 
         rdmax = itasca.fish.get('rdmax')
         
@@ -98,7 +122,7 @@ def run_simulation(params):
         # delete empty list in ball_objects_dict
         empty_sections = [k for k, v in ball_objects_dict.items() if not v]
         if empty_sections:
-            print(f"Warning: The following sections fetched 0 balls and will be deleted: {empty_sections}")
+            logger.warning(f"The following sections fetched 0 balls and will be deleted: {empty_sections}")
             ball_objects_dict = {k: v for k, v in ball_objects_dict.items() if v}
             sec_num = len(ball_objects_dict)
 
@@ -118,7 +142,7 @@ def run_simulation(params):
                         try:
                             ball_obj.delete()
                         except Exception as e:
-                            print(f"Error deleting ball {ball_obj.id()}: {str(e)}")
+                            logger.error(f"Error deleting ball {ball_obj.id()}: {str(e)}")
             
             # Save model and solve
             itasca.command(f"model solve cycle 10")
@@ -175,7 +199,7 @@ def run_simulation(params):
         return True, f"Simulation finished in {resu_path}"
         
     except Exception as e:
-        print(f"Error in simulation {resu_path}: {str(e)}")
+        logger.error(f"Error in simulation {resu_path}: {str(e)}")
         return False, f"Error in simulation {resu_path}: {str(e)}"
 
 def main(start_comb_idx, exp_num):
@@ -191,7 +215,7 @@ def main(start_comb_idx, exp_num):
     # }
 
     param_ranges = {
-        'fric': [0.05,],   # 4 values from 0.0 to 1.0
+        'fric': np.linspace(0, 0.2, 5),   # 5 values from 0.0 to 1.0
         'rfric': [0.05,],  # 4 values from 0.0 to 1.0
         'dpnr': [0.2,],   # 5 values from 0.0 to 1.0
         'dpsr': [0.2,],   # 5 values from 0.0 to 1.0
@@ -212,37 +236,28 @@ def main(start_comb_idx, exp_num):
     end_idx = min(start_comb_idx + exp_num, len(all_combinations))
     param_combinations = all_combinations[start_comb_idx:end_idx]
     
-    # Create log file
-    log_file = 'grid_search.log'
-    # delete log file if it exists
-    # if os.path.exists(log_file):
-    #     os.remove(log_file)
     run_combinations = len(param_combinations)
     
-    print(f"Starting grid search at combination {start_comb_idx} with {run_combinations} combinations")
+    logger.info(f"Starting grid search at combination {start_comb_idx + 1} with {run_combinations} combinations")
     
     # Run all combinations
     start_time = time.time()
     for i, params in enumerate(param_combinations, 1):
-        print(f"\nRunning combination {i + start_comb_idx}/{total_combinations}")
-        print(f"Parameters: fric={params[0]}, rfric={params[1]}, dpnr={params[2]}, dpsr={params[3]}, F0={params[4]}, D0={params[5]}")
+        logger.info(f"Running combination {i + start_comb_idx}/{total_combinations}")
+        logger.info(f"Parameters: fric={params[0]}, rfric={params[1]}, dpnr={params[2]}, dpsr={params[3]}, F0={params[4]}, D0={params[5]}")
         
-        success, msg = run_simulation(params)
+        # success, msg = run_simulation(params)
+        success, msg = True, "Test"
 
-        # Log progress
-        with open(log_file, 'a') as f:
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            f.write(f"[{timestamp}] [INFO] Combination {i + start_comb_idx}/{total_combinations}\n")
-            f.write(f"[{timestamp}] [PARAMS] fric={params[0]}, rfric={params[1]}, dpnr={params[2]}, dpsr={params[3]}, F0={params[4]}, D0={params[5]}\n")
-            f.write(f"[{timestamp}] [STATUS] {'Success' if success else 'Failed'}\n")
-            f.write(f"[{timestamp}] [MSG] {msg}\n")
-            f.write("-" * 50 + "\n")
+        # Log progress (now handled by logger)
+        logger.info(f"Status: {'Success' if success else 'Failed'}")
+        logger.info(f"Message: {msg}")
         
         # Calculate and display estimated time remaining
         elapsed_time = time.time() - start_time
         avg_time_per_sim = elapsed_time / i
         remaining_time = avg_time_per_sim * (run_combinations - i)
-        print(f"Estimated time remaining: {remaining_time/3600:.1f} hours")
+        logger.info(f"Estimated time remaining: {remaining_time/3600:.1f} hours")
 
 if __name__ == "__main__":
     main(start_comb_idx, exp_num)

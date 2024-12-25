@@ -5,6 +5,46 @@ import numpy as np
 import os
 from scipy.interpolate import griddata
 from scipy.ndimage import convolve
+import logging
+from datetime import datetime
+
+def setup_logger(name, log_file=None, level=logging.INFO):
+    """
+    Set up a logger with both file and console handlers.
+    
+    Args:
+        name (str): Logger name (typically __name__)
+        log_file (str, optional): Path to log file. If None, only console output is created.
+        level (int, optional): Logging level. Defaults to logging.INFO.
+    
+    Returns:
+        logging.Logger: Configured logger instance
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    
+    # Remove existing handlers to avoid duplicates
+    logger.handlers.clear()
+    
+    # Create formatters
+    detailed_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    simple_formatter = logging.Formatter('%(message)s')
+    
+    # Console handler (with simple format)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(simple_formatter)
+    logger.addHandler(console_handler)
+    
+    # File handler (with detailed format)
+    if log_file:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(detailed_formatter)
+        logger.addHandler(file_handler)
+    
+    return logger
 
 def run_dat_file(file_path):
     try:
